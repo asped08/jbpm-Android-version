@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical"
+    android:weightSum="1">
+
+    <TextView
+        android:layout_width="94dp"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="@string/jbpm"
+        android:textAlignment="center"
+        android:id="@+id/textView"
+        android:layout_gravity="center_horizontal"
+        android:layout_weight="0.40" />
+
+    <Button
+        android:layout_width="183dp"
+        android:layout_height="wrap_content"
+        android:text="Browser"
+        android:id="@+id/buttonBrowser"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentRight="true"
+        android:layout_gravity="center_horizontal"
+        android:layout_weight="0.02" />
+
+    <Button
+        android:layout_width="183dp"
+        android:layout_height="wrap_content"
+        android:text="Message"
+        android:id="@+id/buttonMessage"
+        android:layout_gravity="center_horizontal"
+        android:layout_weight="0.02" />
+
+    <Button
+        android:layout_width="183dp"
+        android:layout_height="wrap_content"
+        android:text="Location Access"
+        android:id="@+id/buttonLocation"
+        android:layout_gravity="center_horizontal" />
+
+    <Button
+        android:layout_width="183dp"
+        android:layout_height="wrap_content"
+        android:text="Sharing"
+        android:id="@+id/buttonSharing"
+        android:layout_gravity="center_horizontal" />
+
+    <Button
+        android:layout_width="183dp"
+        android:layout_height="wrap_content"
+        android:text="Scan Tag"
+        android:id="@+id/buttonScan"
+        android:layout_gravity="center_horizontal" />
+
+    <Button
+        android:layout_width="183dp"
+        android:layout_height="wrap_content"
+        android:text="Camera"
+        android:id="@+id/buttonCamera"
+        android:layout_gravity="center_horizontal" />
+
+    <Button
+        android:layout_width="183dp"
+        android:layout_height="wrap_content"
+        android:text="Gallery"
+        android:id="@+id/buttonGallery"
+        android:layout_gravity="center_horizontal" />
+</LinearLayout><!-- From: file:/E:/Gsoc/jbpm-android/jbpmandroid/src/main/res/layout/main.xml -->
