@@ -51,19 +51,19 @@ public class LocationActivity extends Activity implements ConnectionCallbacks,
 
     private final static int PLAY_SERVICES_RESOLUTION_REQUEST = 1000;
 
-    private Location mLastLocation;
+    private Location lastLocation;
 
-    // Google client to interact with Google API
-    private GoogleApiClient mGoogleApiClient;
+    // Google client
+    private GoogleApiClient googleApiClient;
 
-    // boolean flag to toggle periodic location updates
-    private boolean mRequestingLocationUpdates = false;
+    //  flag to toggle periodic location updates
+    private boolean requestingLocationUpdateFlag = false;
 
-    private LocationRequest mLocationRequest;
+    private LocationRequest locationRequest;
 
     // UI elements
-    private TextView lblLocation;
-    private Button btnShowLocation, btnStartLocationUpdates;
+    private TextView locationView;
+    private Button buttonShowLocation, buttonLocationUpdates;
 
     protected StatefulKnowledgeSession ksession;
     private WorkItemManager workItemManager;
@@ -156,60 +156,72 @@ public class LocationActivity extends Activity implements ConnectionCallbacks,
                 workItemManager=m;
                 currentWorkItem=workItem;
 
-                lblLocation = (TextView) findViewById(R.id.lblLocation);
-                btnShowLocation = (Button) findViewById(R.id.btnShowLocation);
-                btnStartLocationUpdates = (Button) findViewById(R.id.btnLocationUpdates);
+                locationView = (TextView) findViewById(R.id.lblLocation);
+                buttonShowLocation = (Button) findViewById(R.id.btnShowLocation);
+                buttonLocationUpdates = (Button) findViewById(R.id.btnLocationUpdates);
 
-                // First we need to check availability of play services
+                // check availability of play services
                 if (checkPlayServices()) {
+                    //  GoogleApi client and location request
+                   // createGoogleApiClient();
+                    googleApiClient = new GoogleApiClient.Builder(LocationActivity.this)
+                            .addConnectionCallbacks(LocationActivity.this)
+                            .addOnConnectionFailedListener(LocationActivity.this)
+                            .addApi(LocationServices.API).build();
+                   // createLocationRequest();
+                    locationRequest = new LocationRequest();
 
-                    // Building the GoogleApi client
-                    buildGoogleApiClient();
+                    int UPDATE_INTERVAL = 10000;
+                    locationRequest.setInterval(UPDATE_INTERVAL);
 
-                    createLocationRequest();
+                    int FATEST_INTERVAL = 5000;
+                    locationRequest.setFastestInterval(FATEST_INTERVAL);
+
+                    locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
+                    int DISPLACEMENT = 10;
+                    locationRequest.setSmallestDisplacement(DISPLACEMENT);
+                }
+                else{
+
+                    googleApiClient = new GoogleApiClient.Builder(LocationActivity.this)
+                            .addConnectionCallbacks(LocationActivity.this)
+                            .addOnConnectionFailedListener(LocationActivity.this)
+                            .addApi(LocationServices.API).build();
                 }
 
-                // Show location button click listener
-                btnShowLocation.setOnClickListener(new View.OnClickListener() {
+                // Show location button
+                buttonShowLocation.setOnClickListener(new View.OnClickListener() {
 
                     @Override
                     public void onClick(View v) {
-                      //  displayLocation();
+                        lastLocation = LocationServices.FusedLocationApi
+                                .getLastLocation(googleApiClient);
 
-                        mLastLocation = LocationServices.FusedLocationApi
-                                .getLastLocation(mGoogleApiClient);
+                        if (lastLocation != null) {
+                            double latitude = lastLocation.getLatitude();
+                            double longitude = lastLocation.getLongitude();
 
-                        if (mLastLocation != null) {
-                            double latitude = mLastLocation.getLatitude();
-                            double longitude = mLastLocation.getLongitude();
-
-                            Toast.makeText(getApplicationContext(),latitude+" : "+longitude,Toast.LENGTH_LONG).show();
+                            Toast.makeText(getApplicationContext(), latitude + " : " + longitude, Toast.LENGTH_LONG).show();
 
                             Map<String, Object> results = new HashMap<>();
                             results.put("TextLatitude", "" + latitude);
-                            results.put("TextLongitude",""+longitude);
+                            results.put("TextLongitude", "" + longitude);
                             workItemManager.completeWorkItem(currentWorkItem.getId(), results);
 
                         } else {
-
-                            lblLocation
-                                    .setText("(Couldn't get the location. Make sure location is enabled on the device)");
+                            Toast.makeText(getApplicationContext(),"Couldn't get the location. Make sure location is enabled on the device",Toast.LENGTH_SHORT).show();
                         }
                     }
                 });
-
-                // Toggling the periodic location updates
-                btnStartLocationUpdates.setOnClickListener(new View.OnClickListener() {
+                // start Location updates
+                buttonLocationUpdates.setOnClickListener(new View.OnClickListener() {
 
                     @Override
                     public void onClick(View v) {
-                        togglePeriodicLocationUpdates();
+                        periodicLocationUpdates();
                     }
                 });
-
-
-
-
             }
 
 
@@ -222,18 +234,14 @@ public class LocationActivity extends Activity implements ConnectionCallbacks,
                 String locationLatitude = (String) workItem.getParameter("LATITUDE");
                 String locationLongitude = (String) workItem.getParameter("LONGITUDE");
 
-
                 Toast.makeText(getApplicationContext(), locationLatitude + " : " + locationLongitude,
                         Toast.LENGTH_SHORT).show();
 
-                lblLocation.setText(locationLatitude + ", " + locationLongitude);
-
+                locationView.setText(locationLatitude + ", " + locationLongitude);
 
                 m.completeWorkItem(workItem.getId(), null);
             }
         });
-
-
 
         ksession.startProcess("org.jbpm.android.Location");
     }
@@ -241,8 +249,8 @@ public class LocationActivity extends Activity implements ConnectionCallbacks,
     @Override
     protected void onStart() {
         super.onStart();
-        if (mGoogleApiClient != null) {
-            mGoogleApiClient.connect();
+        if (googleApiClient != null) {
+            googleApiClient.connect();
         }
     }
 
@@ -252,52 +260,49 @@ public class LocationActivity extends Activity implements ConnectionCallbacks,
 
         checkPlayServices();
 
-        // Resuming the periodic location updates
-        if (mGoogleApiClient.isConnected() && mRequestingLocationUpdates) {
-            startLocationUpdates();
+        // resume location updates
+        if (googleApiClient.isConnected() && requestingLocationUpdateFlag) {
+           // startLocationUpdates();
+            LocationServices.FusedLocationApi.requestLocationUpdates(googleApiClient, locationRequest, LocationActivity.this);
         }
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        if (mGoogleApiClient.isConnected()) {
-            mGoogleApiClient.disconnect();
+        if (googleApiClient.isConnected()) {
+            googleApiClient.disconnect();
         }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        stopLocationUpdates();
+       // stopLocationUpdates();
+        LocationServices.FusedLocationApi.removeLocationUpdates(googleApiClient, this);
     }
 
     /**
-     * Method to toggle periodic location updates
+     * start/stop location updates
      * */
-    private void togglePeriodicLocationUpdates() {
-        if (!mRequestingLocationUpdates) {
-            // Changing the button text
-            btnStartLocationUpdates
-                    .setText(getString(R.string.btn_stop_location_updates));
+    private void periodicLocationUpdates() {
+        if (!requestingLocationUpdateFlag) {
 
-            mRequestingLocationUpdates = true;
+            buttonLocationUpdates.setText(getString(R.string.btn_stop_location_updates));
+            requestingLocationUpdateFlag = true;
 
-            // Starting the location updates
-            startLocationUpdates();
-
-           Toast.makeText(getApplicationContext(), "Periodic location updates started!",Toast.LENGTH_SHORT).show();
-
+            // start the location updates
+            //startLocationUpdates();
+            LocationServices.FusedLocationApi.requestLocationUpdates(googleApiClient, locationRequest, this);
+            Toast.makeText(getApplicationContext(), "Periodic location updates started!",Toast.LENGTH_SHORT).show();
         } else {
-            // Changing the button text
-            btnStartLocationUpdates
-                    .setText(getString(R.string.btn_start_location_updates));
 
-            mRequestingLocationUpdates = false;
+            buttonLocationUpdates.setText(getString(R.string.btn_start_location_updates));
+            requestingLocationUpdateFlag = false;
 
-            // Stopping the location updates
-            stopLocationUpdates();
-
+            // Stop the location updates
+           // stopLocationUpdates();
+            LocationServices.FusedLocationApi.removeLocationUpdates(googleApiClient, this);
             Toast.makeText(getApplicationContext(),"Periodic location updates stopped!",Toast.LENGTH_LONG).show();
         }
     }
@@ -305,26 +310,26 @@ public class LocationActivity extends Activity implements ConnectionCallbacks,
     /**
      * Creating google api client object
      * */
-    protected synchronized void buildGoogleApiClient() {
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
+    /*protected synchronized void createGoogleApiClient() {
+        googleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .addApi(LocationServices.API).build();
-    }
+    }*/
 
     /**
      * Creating location request object
      * */
-    protected void createLocationRequest() {
-        mLocationRequest = new LocationRequest();
+  /*  protected void createLocationRequest() {
+        locationRequest = new LocationRequest();
         int UPDATE_INTERVAL = 10000;
-        mLocationRequest.setInterval(UPDATE_INTERVAL);
+        locationRequest.setInterval(UPDATE_INTERVAL);
         int FATEST_INTERVAL = 5000;
-        mLocationRequest.setFastestInterval(FATEST_INTERVAL);
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        locationRequest.setFastestInterval(FATEST_INTERVAL);
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         int DISPLACEMENT = 10;
-        mLocationRequest.setSmallestDisplacement(DISPLACEMENT);
-    }
+        locationRequest.setSmallestDisplacement(DISPLACEMENT);
+    }*/
 
     /**
      * Method to verify google play services on the device
@@ -350,20 +355,20 @@ public class LocationActivity extends Activity implements ConnectionCallbacks,
     /**
      * Starting the location updates
      * */
-    protected void startLocationUpdates() {
+  /*  protected void startLocationUpdates() {
 
         LocationServices.FusedLocationApi.requestLocationUpdates(
-                mGoogleApiClient, mLocationRequest, this);
+                googleApiClient, locationRequest, this);
 
     }
-
+*/
     /**
      * Stopping location updates
      */
-    protected void stopLocationUpdates() {
+    /*protected void stopLocationUpdates() {
         LocationServices.FusedLocationApi.removeLocationUpdates(
-                mGoogleApiClient, this);
-    }
+                googleApiClient, this);
+    }*/
 
     /**
      * Google api callback methods
@@ -377,14 +382,12 @@ public class LocationActivity extends Activity implements ConnectionCallbacks,
     @Override
     public void onConnected(Bundle arg0) {
 
-        // Once connected with google api, get the location
+        //  get the location
+        lastLocation = LocationServices.FusedLocationApi.getLastLocation(googleApiClient);
 
-        mLastLocation = LocationServices.FusedLocationApi
-                .getLastLocation(mGoogleApiClient);
-
-        if (mLastLocation != null) {
-            double latitude = mLastLocation.getLatitude();
-            double longitude = mLastLocation.getLongitude();
+        if (lastLocation != null) {
+            double latitude = lastLocation.getLatitude();
+            double longitude = lastLocation.getLongitude();
 
             Toast.makeText(getApplicationContext(),latitude+" : "+longitude,Toast.LENGTH_LONG).show();
 
@@ -394,35 +397,34 @@ public class LocationActivity extends Activity implements ConnectionCallbacks,
             workItemManager.completeWorkItem(currentWorkItem.getId(), results);
 
         } else {
-
             Toast.makeText(getApplicationContext(), "(Couldn't get the location. Make sure location is enabled on the device)", Toast.LENGTH_LONG).show();
         }
 
-        if (mRequestingLocationUpdates) {
-            startLocationUpdates();
+        if (requestingLocationUpdateFlag) {
+            //startLocationUpdates();
+            LocationServices.FusedLocationApi.requestLocationUpdates(googleApiClient, locationRequest, this);
         }
     }
 
     @Override
     public void onConnectionSuspended(int arg0) {
-        mGoogleApiClient.connect();
+        googleApiClient.connect();
     }
 
     @Override
     public void onLocationChanged(Location location) {
-        // Assign the new location
-        mLastLocation = location;
+        // new location
+        lastLocation = location;
 
         Toast.makeText(getApplicationContext(), "Location changed!",
                 Toast.LENGTH_SHORT).show();
 
-        // Displaying the new location on UI
-        mLastLocation = LocationServices.FusedLocationApi
-                .getLastLocation(mGoogleApiClient);
+        // Display the new location
+        lastLocation = LocationServices.FusedLocationApi.getLastLocation(googleApiClient);
 
-        if (mLastLocation != null) {
-            double latitude = mLastLocation.getLatitude();
-            double longitude = mLastLocation.getLongitude();
+        if (lastLocation != null) {
+            double latitude = lastLocation.getLatitude();
+            double longitude = lastLocation.getLongitude();
 
             Toast.makeText(getApplicationContext(),latitude+" : "+longitude,Toast.LENGTH_LONG).show();
 

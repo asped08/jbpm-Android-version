@@ -218,8 +218,11 @@ public class AndroidBase extends Activity {
                         Intent intent = new Intent("com.google.zxing.client.android.SCAN");
                         intent.putExtra("SCAN_MODE", "QR_CODE_MODE");
 
-                        startActivityForResult(intent, SCAN_CODE);
-
+                        try {
+                            startActivityForResult(intent, SCAN_CODE);
+                        } catch (Exception e) {
+                            Toast.makeText(getApplicationContext(),"Zxing Barcode reader is not installed",Toast.LENGTH_SHORT).show();
+                        }
                         workItemManager = m;
                         currentWorkItem = workItem;
 
