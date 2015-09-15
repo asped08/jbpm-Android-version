@@ -69,4 +69,4 @@
         android:text="@string/btn_start_location_updates"
         android:textColor="@color/white" />
 
-</LinearLayout><!-- From: file:/E:/Gsoc/jbpm-android/jbpmandroid/src/main/res/layout/activity_location.xml -->
+</LinearLayout><!-- From: file:/E:/Gsoc/Submit/jbpm-android/jbpmandroid/src/main/res/layout/activity_location.xml -->

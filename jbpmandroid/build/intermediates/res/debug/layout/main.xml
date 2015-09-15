@@ -67,4 +67,4 @@
         android:text="Gallery"
         android:id="@+id/buttonGallery"
         android:layout_gravity="center_horizontal" />
-</LinearLayout><!-- From: file:/E:/Gsoc/jbpm-android/jbpmandroid/src/main/res/layout/main.xml -->
+</LinearLayout><!-- From: file:/E:/Gsoc/Submit/jbpm-android/jbpmandroid/src/main/res/layout/main.xml -->
